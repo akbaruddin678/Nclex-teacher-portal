@@ -17,7 +17,7 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["admin", "coordinator", "teacher", "student"],
+    enum: ["admin", "coordinator", "teacher"],
     required: true,
   },
   isActive: {
@@ -45,5 +45,7 @@ UserSchema.pre("save", async function (next) {
 UserSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+
 
 module.exports = mongoose.model("User", UserSchema);

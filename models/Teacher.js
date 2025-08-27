@@ -13,21 +13,19 @@ const TeacherSchema = new mongoose.Schema(
     },
     contactNumber: {
       type: String,
-      required: true,
     },
     subjectSpecialization: {
       type: String,
-      required: true,
     },
     qualifications: {
       type: String,
-      required: true,
     },
-    campus: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Campus",
-      required: true,
-    },
+    campus: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Campus",
+      },
+    ],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -36,5 +34,12 @@ const TeacherSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Cascade delete user when teacher is removed
+TeacherSchema.pre("remove", async function (next) {
+  console.log(`Deleting user ${this.user} linked to teacher ${this._id}`);
+  await User.findByIdAndDelete(this.user);
+  next();
+});
 
 module.exports = mongoose.model("Teacher", TeacherSchema);

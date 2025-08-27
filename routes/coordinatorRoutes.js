@@ -1,28 +1,63 @@
 const express = require("express");
 const router = express.Router();
-const { protect, authorize } = require("../middleware");
 const {
-  createTeacher,
+  getCoordinatorProfile,
+  updateCoordinatorProfile,
+  getCampusStudents,
+  getStudentDetails,
+  updateStudent,
+  getCampusCourses,
+  getStudentAttendance,
+  markAttendance,
+  getStudentAssessments,
+  getCampusDashboard,
+  assignTeacherToCourse,
+  unassignTeacherFromCourse,
+  registerTeacher,
   getTeachers,
+  getTeacher,
   updateTeacher,
   deleteTeacher,
-  createStudent,
-  getStudents,
-  updateStudent,
-  deleteStudent,
 } = require("../controllers/coordinatorController");
 
+const { protect, authorize } = require("../middleware");
+
+// Apply auth for all coordinator routes once
 router.use(protect);
 router.use(authorize("coordinator"));
 
-// Teacher routes
-router.route("/teachers").post(createTeacher).get(getTeachers);
+// Coordinator profile
+router.route("/me").get(getCoordinatorProfile).put(updateCoordinatorProfile);
 
-router.route("/teachers/:id").put(updateTeacher).delete(deleteTeacher);
+// Dashboard
+router.route("/dashboard").get(getCampusDashboard);
 
-// Student routes
-router.route("/students").post(createStudent).get(getStudents);
+// Students
+router.route("/students").get(getCampusStudents);
+router.route("/students/:id").get(getStudentDetails).put(updateStudent);
 
-router.route("/students/:id").put(updateStudent).delete(deleteStudent);
+// Courses
+router.route("/courses").get(getCampusCourses);
+router
+  .route("/courses/:courseId/assign-teacher/:teacherId")
+  .post(assignTeacherToCourse);
+router
+  .route("/courses/:courseId/unassign-teacher")
+  .delete(unassignTeacherFromCourse);
+
+// Attendance
+router.route("/attendance/:studentId").get(getStudentAttendance);
+router.route("/attendance").post(markAttendance);
+
+// Assessments
+router.route("/assessments/:studentId").get(getStudentAssessments);
+
+// Teachers (scoped under /teachers, not router root)
+router.route("/teachers").post(registerTeacher).get(getTeachers);
+router
+  .route("/teachers/:id")
+  .get(getTeacher)
+  .put(updateTeacher)
+  .delete(deleteTeacher);
 
 module.exports = router;

@@ -9,12 +9,11 @@ const documentSchema = new mongoose.Schema(
     },
     documentType: {
       type: String,
-      enum: ["cnic", "educational", "other"],
+      enum: ["cnic", "educational", "fee", "other"],
       required: true,
     },
     filePath: {
       type: String,
-      required: true,
     },
     status: {
       type: String,

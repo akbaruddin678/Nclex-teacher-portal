@@ -1,110 +1,90 @@
+// controllers/courseOutlines.js
 const ErrorResponse = require("../utils/apiResponse");
 const asyncHandler = require("../utils/asyncHandler");
-const Course = require("../models/Course");
 const CourseOutline = require("../models/CourseOutline");
-const Teacher = require("../models/Teacher");
-const Student = require("../models/Student");
+// Optional: only if you still link outlines to a Course via :courseId
+// const Course = require("../models/Course");
 
-// @desc    Create a course
-// @route   POST /api/v1/courses
-// @access  Private/Admin
-exports.createCourse = asyncHandler(async (req, res, next) => {
+/**
+ * @desc    Add a course outline (new JSON structure)
+ * @route   POST /api/v1/courses/:courseId/outline   (courseId optional if your schema has 'course')
+ *          or    POST /api/v1/course-outlines       (if you mount a standalone route)
+ * @access  Private (teacher/admin)
+ */
+exports.addCourseOutline = asyncHandler(async (req, res, next) => {
+  const { courseId } = req.params || {};
   const {
-    name,
-    code,
-    description,
-    creditHours,
-    teacherId,
-    startDate,
-    endDate,
+    program_name,
+    week_title,
+    location,
+    days,
+    references = [],
   } = req.body;
 
-  // Check if teacher exists
-  if (teacherId) {
-    const teacher = await Teacher.findById(teacherId);
-    if (!teacher) {
-      return next(new ErrorResponse("Teacher not found", 404));
-    }
-  }
-
-  const course = await Course.create({
-    name,
-    code,
-    description,
-    creditHours,
-    teacher: teacherId,
-    startDate,
-    endDate,
-  });
-
-  res.status(201).json({
-    success: true,
-    data: course,
-  });
-});
-
-// @desc    Add students to course in bulk
-// @route   POST /api/v1/courses/:courseId/students/bulk
-// @access  Private/Admin
-exports.addBulkStudentsToCourse = asyncHandler(async (req, res, next) => {
-  const { courseId } = req.params;
-  const { studentIds } = req.body;
-
-  // Check if course exists
-  const course = await Course.findById(courseId);
-  if (!course) {
-    return next(new ErrorResponse("Course not found", 404));
-  }
-
-  // Check if all students exist
-  const students = await Student.find({ _id: { $in: studentIds } });
-  if (students.length !== studentIds.length) {
-    return next(new ErrorResponse("One or more students not found", 404));
-  }
-
-  // Add students to course (avoid duplicates)
-  const existingStudentIds = course.students.map((id) => id.toString());
-  const newStudentIds = studentIds.filter(
-    (id) => !existingStudentIds.includes(id)
-  );
-
-  course.students = [...course.students, ...newStudentIds];
-  await course.save();
-
-  res.status(200).json({
-    success: true,
-    data: course,
-  });
-});
-
-// @desc    Add weekly outline to course
-// @route   POST /api/v1/courses/:courseId/outline
-// @access  Private/Teacher
-exports.addCourseOutline = asyncHandler(async (req, res, next) => {
-  const { courseId } = req.params;
-  const { week, topics, objectives, resources, assignments } = req.body;
-
-  // Check if course exists
-  const course = await Course.findById(courseId);
-  if (!course) {
-    return next(new ErrorResponse("Course not found", 404));
-  }
-
-  // Check if teacher is assigned to this course
-  if (course.teacher.toString() !== req.user.id) {
+  // Basic presence checks (Mongoose will also validate)
+  if (
+    !program_name ||
+    !week_title ||
+    !location ||
+    !Array.isArray(days) ||
+    days.length === 0
+  ) {
     return next(
-      new ErrorResponse("Not authorized to add outline for this course", 401)
+      new ErrorResponse(
+        "program_name, week_title, location, and non-empty days[] are required.",
+        400
+      )
     );
   }
 
-  const outline = await CourseOutline.create({
-    course: courseId,
-    week,
-    topics,
-    objectives,
-    resources,
-    assignments,
-  });
+  // Validate day/slot shape quickly before hitting DB
+  for (const d of days) {
+    if (
+      !d.day_name ||
+      !d.date ||
+      !d.unit ||
+      !d.instructor ||
+      !Array.isArray(d.slots) ||
+      d.slots.length === 0
+    ) {
+      return next(
+        new ErrorResponse(
+          "Each day requires day_name, date, unit, instructor, and non-empty slots[].",
+          400
+        )
+      );
+    }
+    for (const s of d.slots) {
+      if (!s.time_start || !s.time_end || !s.topic) {
+        return next(
+          new ErrorResponse(
+            "Each slot requires time_start, time_end, and topic.",
+            400
+          )
+        );
+      }
+    }
+  }
+
+  // If you're still associating outlines to a Course, you can optionally verify it:
+  // if (courseId) {
+  //   const course = await Course.findById(courseId);
+  //   if (!course) return next(new ErrorResponse("Course not found", 404));
+  // }
+
+  // Prepare payload
+  const payload = {
+    program_name,
+    week_title,
+    location,
+    days,
+    references,
+  };
+
+  // If your CourseOutline schema includes a `course` field, attach it:
+  if (courseId) payload.course = courseId;
+
+  const outline = await CourseOutline.create(payload);
 
   res.status(201).json({
     success: true,
@@ -112,18 +92,35 @@ exports.addCourseOutline = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get course outlines
-// @route   GET /api/v1/courses/:courseId/outline
-// @access  Private
+/**
+ * @desc    Get course outlines (filterable)
+ * @route   GET /api/v1/courses/:courseId/outline
+ *          or  GET /api/v1/course-outlines?program_name=&week_title=&location=&date=
+ * @access  Private
+ */
 exports.getCourseOutlines = asyncHandler(async (req, res, next) => {
-  const { courseId } = req.params;
+  const { courseId } = req.params || {};
+  const { program_name, week_title, location, date } = req.query;
 
-  const outlines = await CourseOutline.find({ course: courseId }).sort({
-    week: 1,
-  });
+  const filter = {};
+
+  // If outlines are linked to a course, filter by it
+  if (courseId) filter.course = courseId;
+
+  if (program_name) filter.program_name = program_name;
+  if (week_title) filter.week_title = week_title;
+  if (location) filter.location = location;
+
+  // If a specific calendar date is provided, match outlines that have a day on that date
+  // (this uses dot notation on the array of subdocs)
+  if (date) filter["days.date"] = new Date(date);
+
+  // Newest first by creation; feel free to change
+  const outlines = await CourseOutline.find(filter).sort({ createdAt: -1 });
 
   res.status(200).json({
     success: true,
+    count: outlines.length,
     data: outlines,
   });
 });

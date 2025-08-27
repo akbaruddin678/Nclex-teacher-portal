@@ -8,7 +8,6 @@ const CourseSchema = new mongoose.Schema(
     },
     code: {
       type: String,
-      required: true,
       unique: true,
     },
     description: {
@@ -17,23 +16,25 @@ const CourseSchema = new mongoose.Schema(
     creditHours: {
       type: Number,
     },
-    teacher: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Teacher",
-    },
+    teacher: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Teacher",
+        default: [],
+      },
+    ],
     students: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Student",
+        default: [],
       },
     ],
     startDate: {
       type: Date,
-      required: true,
     },
     endDate: {
       type: Date,
-      required: true,
     },
   },
   { timestamps: true }

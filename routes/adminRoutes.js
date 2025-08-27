@@ -3,7 +3,7 @@ const router = express.Router();
 const { protect, authorize, validateAssignment } = require("../middleware");
 const adminController = require("../controllers/adminController");
 
-// // Apply middleware to all routes
+// Apply middleware to all routes
 router.use(protect);
 router.use(authorize("admin"));
 
@@ -62,12 +62,7 @@ router
   .put(adminController.updateCourse)
   .delete(adminController.deleteCourse);
 
-// Assignment routes
-router.post(
-  "/assign/coordinator",
-  validateAssignment("coordinator"),
-  adminController.assignCoordinatorToCampus
-);
+
 
 router.post(
   "/assign/courses",
@@ -75,11 +70,10 @@ router.post(
   adminController.assignCoursesToCampus
 );
 
-router.post(
-  "/assign/teachers",
-  validateAssignment("teachers"),
-  adminController.assignTeachersToCourses
-);
+// adminRouter.js
+
+router.post("/assign/teacher-to-course-and-campus", adminController.assignTeacherToCourseAndCampus);
+
 
 router.post(
   "/assign/students",
@@ -87,4 +81,50 @@ router.post(
   adminController.assignStudentsToCampusAndCourses
 );
 
+// ====== EXTRA ROUTES from controller ======
+// Get students by city (query params)
+router.get("/students/city", adminController.getStudentsByCity);
+
+// Assign students to campus
+router.post("/assign/students-to-campus", adminController.assignStudentsToCampus);
+
+// Assign courses to campus
+router.post("/assign/course-to-campus", adminController.assignCoursesToCampus);
+
+
+// Get unassigned courses
+router.get("/courses/unassigned", adminController.getUnassignedCourses);
+
+
+// Assign coordinator to campus
+router.post(
+  "/assign/coordinator",
+  validateAssignment("coordinator"),
+  adminController.assignCoordinatorToCampus
+);
+
+// Remove coordinator from campus
+router.post(
+  "/remove/coordinator-from-campus",
+  validateAssignment("coordinator"),
+  adminController.removeCoordinatorFromCampus
+);
+
+// Get unassigned coordinators
+router.get("/coordinators/unassigned", adminController.getUnassignedCoordinators);
+
+router.get("/marks/:studentId", adminController.getStudentMarks);
+router.get("/attendance/:studentId", adminController.getStudentAttendance);
+
+router.get("/campuses/:id/students", adminController.getStudentsByCampus);
+
+
+// Notification routes
+router
+  .route("/notifications")
+  .get(adminController.getNotifications)
+  .post(adminController.createNotification);
+
+
+  
 module.exports = router;

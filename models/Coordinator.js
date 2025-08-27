@@ -10,14 +10,17 @@ const CoordinatorSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+
   contactNumber: {
     type: String,
-    required: true,
   },
-  department: {
-    type: String,
-    required: true,
+
+  campus: {
+    // Add this field to reference the campus
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Campus",
   },
+
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",

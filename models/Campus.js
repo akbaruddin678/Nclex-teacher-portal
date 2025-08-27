@@ -9,16 +9,40 @@ const CampusSchema = new mongoose.Schema(
     },
     location: {
       type: String,
-      required: true,
     },
     address: {
       type: String,
-      required: true,
     },
     contactNumber: {
       type: String,
-      required: true,
     },
+    coordinators: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Coordinator",
+      },
+    ],
+    students: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Student",
+        default: [],
+      },
+    ],
+    courses: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Course",
+        default: [],
+      },
+    ],
+    teacher: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Teacher",
+        default: [],
+      },
+    ],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

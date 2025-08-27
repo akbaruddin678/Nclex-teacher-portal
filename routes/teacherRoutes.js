@@ -1,23 +1,23 @@
 const express = require("express");
 const router = express.Router();
+
 const { protect, authorize } = require("../middleware");
-const {
-  createTeacher,
-  getTeachers,
-  updateTeacher,
-  deleteTeacher,
-} = require("../controllers/teacherController");
+const teacherController = require("../controllers/teacherController");
 
+// All teacher self endpoints require auth + teacher role
 router.use(protect);
+router.use(authorize("teacher")); // Ensure that the user is a teacher
 
-router
-  .route("/")
-  .post(authorize("admin", "coordinator"), createTeacher)
-  .get(authorize("admin", "coordinator"), getTeachers);
+// Route to get current teacher profile
+router.get("/me", teacherController.getMyProfile);
 
-router
-  .route("/:id")
-  .put(authorize("admin", "coordinator"), updateTeacher)
-  .delete(authorize("admin", "coordinator"), deleteTeacher);
+// Route to get consolidated teacher dashboard (courses, students, campus)
+router.get("/dashboard", teacherController.getTeacherDashboard);
+
+// Route to get courses taught by the teacher
+router.get("/courses", teacherController.getTeacherCourses);
+
+// Route to get all students in the teacher's campus
+router.get("/students", teacherController.getTeacherStudents);
 
 module.exports = router;

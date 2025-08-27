@@ -1,11 +1,6 @@
 const mongoose = require("mongoose");
 
 const StudentSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
   name: {
     type: String,
     required: true,
@@ -15,23 +10,40 @@ const StudentSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  email: {
+    type: String,
+    required: true,
+  },
   phone: {
     type: String,
     required: true,
   },
+  city: {
+    type: String,
+  },
   pncNo: {
     type: String,
-    required: true,
-    unique: true,
   },
   passport: {
     type: String,
-    required: true,
-    unique: true,
   },
+  courses: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course",
+    },
+  ],
   qualifications: {
     type: String,
-    required: true,
+  },
+  campus: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Campus",
+  },
+  documentstatus: {
+    type: String,
+    enum: ["verified", "notverified"],
+    default: "notverified",
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
